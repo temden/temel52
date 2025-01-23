@@ -1,0 +1,46 @@
+// Fenerbahçe Maç Sonuçları Task Script
+// Quantumult X Remote Task
+const options = {
+  teamID: 66,
+  apiKey: '34dea49588314d5fa462ebb59d6fa207', // Kendi anahtarınızı ekleyin
+  notifyIcon: 'https://i.hizliresim.com/sb6d6kl.png' // Fenerbahçe logo
+};
+
+async function fenerTask() {
+  try {
+    const res = await $http.get({
+      url: `https://api.football-data.org/v4/teams/${options.teamID}/matches`,
+      headers: { 'X-Auth-Token': options.apiKey }
+    });
+
+    const now = Date.now();
+    const newMatches = res.data.matches.filter(match => 
+      match.status === 'FINISHED' && 
+      (now - new Date(match.utcDate)) < 7200000 // 2 saat içinde biten maçlar
+    );
+
+    if (newMatches.length > 0) {
+      newMatches.forEach(match => {
+        $$notify(
+          `🔵🟡 $${match.homeTeam.shortName} vs ${match.awayTeam.shortName}`,
+          `SKOR: ${match.score.fullTime.home}-${match.score.fullTime.away}`,
+          `Tarih: ${new Date(match.utcDate).toLocaleDateString('tr-TR')}\nSTATÜ: ${match.status}`,
+          { url: 'https://www.fenerbahce.org', 'media-url': options.notifyIcon }
+        );
+      });
+      $done({ matched: true });
+    } else {
+      $$done({ matched: false });
+    }
+  } catch (err) {
+    $$notify('⛔ Fenerbahçe Hatası', 'Veri Çekilemedi', err.error);
+    $done();
+  }
+}
+
+module.exports = {
+  task: {
+    handler: fenerTask,
+    timeout: 15
+  }
+};
